@@ -79,7 +79,7 @@ def generate_image(prompt, output_path="result.jpg", model=None):
             print(f"  任务ID: {task_id}, 等待结果...")
             
             # 轮询等待
-            max_wait = 180
+            max_wait = 300
             elapsed = 0
             while elapsed < max_wait:
                 task_result = requests.get(
@@ -90,7 +90,7 @@ def generate_image(prompt, output_path="result.jpg", model=None):
                 
                 if task_result.status_code != 200:
                     time.sleep(5)
-                    elapsed += 5
+                    elapsed += 10
                     continue
                     
                 data = task_result.json()
@@ -112,7 +112,7 @@ def generate_image(prompt, output_path="result.jpg", model=None):
                     break
                 
                 time.sleep(5)
-                elapsed += 5
+                elapsed += 10
                 
             print(f"  模型 {attempt_model} 超时，继续下一个模型")
             
