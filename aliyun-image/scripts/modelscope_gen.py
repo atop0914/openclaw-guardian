@@ -17,11 +17,23 @@ API_KEY = os.environ.get("MODELSCOPE_TOKEN", "")
 
 # 可用模型列表（按优先级排序）
 MODELS = [
+    "Qwen/Qwen-Image-2512",  # 主模型
     "Tongyi-MAI/Z-Image",
     "Tongyi-MAI/Z-Image-Turbo", 
     "MusePublic/489_ckpt_FLUX_1",
-    "Qwen/Qwen-Image",  # 备用
 ]
+
+def download_image(image_url, timeout=60):
+    """下载图片，支持完整URL和相对路径"""
+    if image_url.startswith("http://") or image_url.startswith("https://"):
+        # 完整URL直接下载
+        response = requests.get(image_url, timeout=timeout, stream=True)
+    else:
+        # 相对路径，与base_url拼接
+        response = requests.get(f"{BASE_URL}{image_url.lstrip('/')}", timeout=timeout, stream=True)
+    
+    response.raise_for_status()
+    return response.content
 
 def generate_image(prompt, output_path="result.jpg", model=None):
     if not API_KEY:
@@ -49,7 +61,9 @@ def generate_image(prompt, output_path="result.jpg", model=None):
                 headers={**common_headers, "X-ModelScope-Async-Mode": "true"},
                 data=json.dumps({
                     "model": attempt_model,
-                    "prompt": prompt
+                    "prompt": prompt,
+                    "width": 1024,
+                    "height": 1024,
                 }, ensure_ascii=False).encode('utf-8'),
                 timeout=30
             )
@@ -63,9 +77,8 @@ def generate_image(prompt, output_path="result.jpg", model=None):
             
             # 检查是否立即返回结果（同步模式）
             if "output_images" in result and result["output_images"]:
-                img_url = result["output_images"][0]
-                img_content = requests.get(img_url, timeout=60)
-                image = Image.open(BytesIO(img_content.content))
+                img_content = download_image(result["output_images"][0])
+                image = Image.open(BytesIO(img_content))
                 image.save(output_path)
                 print(f"✓ 图片生成成功: {output_path} (模型: {attempt_model})")
                 return
@@ -78,9 +91,12 @@ def generate_image(prompt, output_path="result.jpg", model=None):
                 
             print(f"  任务ID: {task_id}, 等待结果...")
             
-            # 轮询等待
-            max_wait = 300
+            # 轮询等待 - 使用指数退避
+            max_wait = 300  # 5分钟
             elapsed = 0
+            poll_interval = 2
+            max_poll_interval = 30
+            
             while elapsed < max_wait:
                 task_result = requests.get(
                     f"{BASE_URL}v1/tasks/{task_id}",
@@ -89,8 +105,9 @@ def generate_image(prompt, output_path="result.jpg", model=None):
                 )
                 
                 if task_result.status_code != 200:
-                    time.sleep(5)
-                    elapsed += 10
+                    time.sleep(poll_interval)
+                    elapsed += poll_interval
+                    poll_interval = min(poll_interval * 1.5, max_poll_interval)
                     continue
                     
                 data = task_result.json()
@@ -98,9 +115,8 @@ def generate_image(prompt, output_path="result.jpg", model=None):
                 
                 if status == "SUCCEED":
                     if "output_images" in data and data["output_images"]:
-                        img_url = data["output_images"][0]
-                        img_content = requests.get(img_url, timeout=60)
-                        image = Image.open(BytesIO(img_content.content))
+                        img_content = download_image(data["output_images"][0])
+                        image = Image.open(BytesIO(img_content))
                         image.save(output_path)
                         print(f"✓ 图片生成成功: {output_path} (模型: {attempt_model})")
                         return
@@ -110,9 +126,13 @@ def generate_image(prompt, output_path="result.jpg", model=None):
                 elif status == "FAILED":
                     print(f"  模型 {attempt_model} 生成失败")
                     break
+                else:
+                    print(f"  状态: {status}, 等待中...")
                 
-                time.sleep(5)
-                elapsed += 10
+                time.sleep(poll_interval)
+                elapsed += poll_interval
+                # 指数退避
+                poll_interval = min(poll_interval * 1.5, max_poll_interval)
                 
             print(f"  模型 {attempt_model} 超时，继续下一个模型")
             
