@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-ModelScope 多模型图片生成脚本
-当前模型失败时，自动尝试其他模型
+ModelScope 多模型图片生成
+自动轮换模型，每个模型失败后尝试下一个
 用法: python3 modelscope_gen.py <prompt> [--output result.jpg]
 """
 import requests
@@ -12,145 +12,82 @@ import os
 from PIL import Image
 from io import BytesIO
 
-BASE_URL = 'https://api-inference.modelscope.cn/'
 API_KEY = os.environ.get("MODELSCOPE_TOKEN", "")
-
-# 可用模型列表（按优先级排序）
 MODELS = [
-    "Qwen/Qwen-Image-2512",  # 主模型
+    "Qwen/Qwen-Image-2512",
     "Tongyi-MAI/Z-Image",
     "Tongyi-MAI/Z-Image-Turbo", 
     "MusePublic/489_ckpt_FLUX_1",
 ]
 
-def download_image(image_url, timeout=60):
-    """下载图片，支持完整URL和相对路径"""
-    if image_url.startswith("http://") or image_url.startswith("https://"):
-        # 完整URL直接下载
-        response = requests.get(image_url, timeout=timeout, stream=True)
-    else:
-        # 相对路径，与base_url拼接
-        response = requests.get(f"{BASE_URL}{image_url.lstrip('/')}", timeout=timeout, stream=True)
-    
-    response.raise_for_status()
-    return response.content
+def download_image(url):
+    if url.startswith("http"):
+        return requests.get(url, timeout=60).content
+    return requests.get(f"https://api-inference.modelscope.cn/{url.lstrip('/')}", timeout=60).content
 
-def generate_image(prompt, output_path="result.jpg", model=None):
+def generate(prompt, output="result.jpg"):
     if not API_KEY:
-        print("错误: 请设置 MODELSCOPE_TOKEN 环境变量")
-        print("export MODELSCOPE_TOKEN='your_token'")
+        print("请设置 MODELSCOPE_TOKEN 环境变量")
         sys.exit(1)
     
-    # 确定要尝试的模型列表
-    models_to_try = [model] if model else MODELS.copy()
+    headers = {"Authorization": f"Bearer {API_KEY}", "Content-Type": "application/json"}
     
-    common_headers = {
-        "Authorization": f"Bearer {API_KEY}",
-        "Content-Type": "application/json",
-    }
-    
-    last_error = None
-    
-    for attempt_model in models_to_try:
-        print(f"尝试模型: {attempt_model}")
-        
+    for model in MODELS:
+        print(f"尝试: {model}")
         try:
-            # 提交任务
-            response = requests.post(
-                f"{BASE_URL}v1/images/generations",
-                headers={**common_headers, "X-ModelScope-Async-Mode": "true"},
-                data=json.dumps({
-                    "model": attempt_model,
-                    "prompt": prompt,
-                    "width": 1024,
-                    "height": 1024,
-                }, ensure_ascii=False).encode('utf-8'),
+            # 提交
+            r = requests.post(
+                "https://api-inference.modelscope.cn/v1/images/generations",
+                headers={**headers, "X-ModelScope-Async-Mode": "true"},
+                data=json.dumps({"model": model, "prompt": prompt, "width": 1024, "height": 1024}, ensure_ascii=False).encode(),
                 timeout=30
             )
+            result = r.json()
             
-            if response.status_code != 200:
-                print(f"  模型 {attempt_model} 提交失败: {response.status_code}")
-                last_error = f"HTTP {response.status_code}"
-                continue
-                
-            result = response.json()
-            
-            # 检查是否立即返回结果（同步模式）
-            if "output_images" in result and result["output_images"]:
-                img_content = download_image(result["output_images"][0])
-                image = Image.open(BytesIO(img_content))
-                image.save(output_path)
-                print(f"✓ 图片生成成功: {output_path} (模型: {attempt_model})")
+            # 同步返回
+            if result.get("output_images"):
+                img = Image.open(BytesIO(download_image(result["output_images"][0])))
+                img.save(output)
+                print(f"✓ 成功: {output}")
                 return
             
-            # 异步模式，轮询任务状态
+            # 异步轮询
             task_id = result.get("task_id")
             if not task_id:
-                print(f"  模型 {attempt_model} 无 task_id，继续下一个")
                 continue
-                
-            print(f"  任务ID: {task_id}, 等待结果...")
             
-            # 轮询等待 - 使用指数退避
-            max_wait = 300  # 5分钟
-            elapsed = 0
-            poll_interval = 2
-            max_poll_interval = 30
+            print(f"  任务: {task_id}")
+            poll_interval, elapsed = 2, 0
             
-            while elapsed < max_wait:
-                task_result = requests.get(
-                    f"{BASE_URL}v1/tasks/{task_id}",
-                    headers={**common_headers, "X-ModelScope-Task-Type": "image_generation"},
+            while elapsed < 300:
+                task = requests.get(
+                    f"https://api-inference.modelscope.cn/v1/tasks/{task_id}",
+                    headers={**headers, "X-ModelScope-Task-Type": "image_generation"},
                     timeout=30
-                )
+                ).json()
                 
-                if task_result.status_code != 200:
-                    time.sleep(poll_interval)
-                    elapsed += poll_interval
-                    poll_interval = min(poll_interval * 1.5, max_poll_interval)
-                    continue
-                    
-                data = task_result.json()
-                status = data.get("task_status", "UNKNOWN")
-                
-                if status == "SUCCEED":
-                    if "output_images" in data and data["output_images"]:
-                        img_content = download_image(data["output_images"][0])
-                        image = Image.open(BytesIO(img_content))
-                        image.save(output_path)
-                        print(f"✓ 图片生成成功: {output_path} (模型: {attempt_model})")
-                        return
-                    else:
-                        print(f"  模型 {attempt_model} 返回成功但无图片")
-                        break
-                elif status == "FAILED":
-                    print(f"  模型 {attempt_model} 生成失败")
+                if task.get("task_status") == "SUCCEED" and task.get("output_images"):
+                    img = Image.open(BytesIO(download_image(task["output_images"][0])))
+                    img.save(output)
+                    print(f"✓ 成功: {output}")
+                    return
+                elif task.get("task_status") == "FAILED":
                     break
-                else:
-                    print(f"  状态: {status}, 等待中...")
                 
                 time.sleep(poll_interval)
                 elapsed += poll_interval
-                # 指数退避
-                poll_interval = min(poll_interval * 1.5, max_poll_interval)
+                poll_interval = min(poll_interval * 1.5, 30)
+                print(f"  等待中... {elapsed}s")
                 
-            print(f"  模型 {attempt_model} 超时，继续下一个模型")
-            
         except Exception as e:
-            print(f"  模型 {attempt_model} 异常: {e}")
-            last_error = str(e)
+            print(f"  异常: {e}")
             continue
     
-    print(f"❌ 所有模型都尝试失败，最后错误: {last_error}")
+    print("❌ 所有模型失败")
     sys.exit(1)
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     if len(sys.argv) < 2:
         print(__doc__)
-        print("可用模型:", ", ".join(MODELS))
         sys.exit(1)
-    
-    prompt = sys.argv[1]
-    output = sys.argv[2] if len(sys.argv) > 2 else "result.jpg"
-    
-    generate_image(prompt, output)
+    generate(sys.argv[1], sys.argv[2] if len(sys.argv) > 2 else "result.jpg")
