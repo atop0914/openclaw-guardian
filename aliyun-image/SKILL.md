@@ -36,7 +36,7 @@ python3 ~/.openclaw/workspace/skills/aliyun-image/scripts/generate_image.py \
 # 保存到指定路径
 python3 ~/.openclaw/workspace/skills/aliyun-image/scripts/generate_image.py \
   "风景画：山水意境" \
-  --output /home/zhuyitao/images/landscape.png
+  --output /path/to/images/landscape.png
 ```
 
 ### 方式2: 在对话中使用

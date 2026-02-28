@@ -26,6 +26,6 @@ python3 ~/.openclaw/workspace/skills/feishu-image/send_image.py \
 ```bash
 # 发送给用户
 python3 ~/.openclaw/workspace/skills/feishu-image/send_image.py \
-  /home/zhuyitao/openclaw/images/photo.png \
+  /path/to/photo.png \
   ou_93ae9772bb20755c375035e320815bfd
 ```
