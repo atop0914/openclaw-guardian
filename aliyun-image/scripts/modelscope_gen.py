@@ -39,7 +39,9 @@ def generate_image(prompt, output_path="result.jpg"):
     print(f"任务提交成功, task_id: {task_id}")
     
     # 轮询结果
-    while True:
+    max_wait = 180  # 最多等待3分钟
+    elapsed = 0
+    while elapsed < max_wait:
         result = requests.get(
             f"{BASE_URL}v1/tasks/{task_id}",
             headers={**common_headers, "X-ModelScope-Task-Type": "image_generation"},
@@ -51,12 +53,16 @@ def generate_image(prompt, output_path="result.jpg"):
             image = Image.open(BytesIO(requests.get(data["output_images"][0]).content))
             image.save(output_path)
             print(f"图片已保存: {output_path}")
-            break
+            return
         elif data["task_status"] == "FAILED":
             print("图片生成失败")
             sys.exit(1)
         
         time.sleep(5)
+        elapsed += 5
+        print(f"等待中... {elapsed}s")
+    
+    print("超时，任务仍在处理中")
 
 if __name__ == '__main__':
     if len(sys.argv) < 2:
