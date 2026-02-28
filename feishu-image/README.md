@@ -17,7 +17,7 @@
 ```bash
 python3 ~/.openclaw/workspace/skills/feishu-image/send_image.py \
   /path/to/image.png \
-  ou_93ae9772bb20755c375035e320815bfd \
+  USER_OPEN_ID \
   "这是图片"
 ```
 
@@ -27,5 +27,5 @@ python3 ~/.openclaw/workspace/skills/feishu-image/send_image.py \
 # 发送给用户
 python3 ~/.openclaw/workspace/skills/feishu-image/send_image.py \
   /path/to/photo.png \
-  ou_93ae9772bb20755c375035e320815bfd
+  USER_OPEN_ID
 ```

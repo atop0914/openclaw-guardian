@@ -24,5 +24,5 @@ python3 <skill-path>/send_image.py <图片路径> <接收人open_id> [消息]
 ## 示例
 
 ```bash
-python3 send_image.py /path/to/image.png ou_93ae9772bb20755c375035e320815bfd "请查看图片"
+python3 send_image.py /path/to/image.png USER_OPEN_ID "请查看图片"
 ```
