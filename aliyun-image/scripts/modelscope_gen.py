@@ -63,7 +63,9 @@ def generate_image(prompt, output_path="result.jpg", model=None):
             
             # 检查是否立即返回结果（同步模式）
             if "output_images" in result and result["output_images"]:
-                image = Image.open(BytesIO(requests.get(result["output_images"][0]).content))
+                img_url = result["output_images"][0]
+                img_content = requests.get(img_url, timeout=60)
+                image = Image.open(BytesIO(img_content.content))
                 image.save(output_path)
                 print(f"✓ 图片生成成功: {output_path} (模型: {attempt_model})")
                 return
@@ -96,7 +98,9 @@ def generate_image(prompt, output_path="result.jpg", model=None):
                 
                 if status == "SUCCEED":
                     if "output_images" in data and data["output_images"]:
-                        image = Image.open(BytesIO(requests.get(data["output_images"][0]).content))
+                        img_url = data["output_images"][0]
+                        img_content = requests.get(img_url, timeout=60)
+                        image = Image.open(BytesIO(img_content.content))
                         image.save(output_path)
                         print(f"✓ 图片生成成功: {output_path} (模型: {attempt_model})")
                         return
