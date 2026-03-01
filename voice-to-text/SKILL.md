@@ -5,7 +5,7 @@ description: 使用本地 faster-whisper 将语音(.ogg/.m4a/.mp3/.wav)转成文
 
 # Voice to Text
 
-使用本地 faster-whisper (tiny 模型) 进行语音转文字，无需网络。
+使用本地 faster-whisper (base 模型) 进行语音转文字，无需网络。
 
 ## 使用方式
 

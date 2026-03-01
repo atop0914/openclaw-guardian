@@ -5,7 +5,7 @@ import sys
 from faster_whisper import WhisperModel
 
 def transcribe(audio_path):
-    model = WhisperModel('tiny', device='cpu', compute_type='int8')
+    model = WhisperModel('base', device='cpu', compute_type='int8')
     segments, info = model.transcribe(audio_path)
     result = []
     for segment in segments:
