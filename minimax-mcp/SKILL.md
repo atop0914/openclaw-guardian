@@ -15,20 +15,36 @@ allowed-tools: Bash(mcporter:*), Bash(eval:*)
 npm install -g mcporter
 ```
 
-### 2. 配置 MCP 服务器
+### 2. 检查 MCP 配置
 
-创建配置文件 `~/.openclaw/workspace/config/mcporter.json`:
+配置已存在于 `~/.mcporter/config.json`：
 
 ```json
 {
   "mcpServers": {
     "minimax": {
-      "type": "stdio",
       "command": "uvx",
       "args": ["minimax-coding-plan-mcp", "-y"],
       "env": {
-        "MINIMAX_API_KEY": "你的 Minimax API Key",
-        "MINIMAX_BASE_URL": "https://api.minimax.chat/v1"
+        "MINIMAX_API_KEY": "你的API Key",
+        "MINIMAX_API_HOST": "https://api.minimaxi.com"
+      }
+    }
+  }
+}
+```
+
+**如需重新配置**，创建 `~/.mcporter/config.json`:
+
+```json
+{
+  "mcpServers": {
+    "minimax": {
+      "command": "uvx",
+      "args": ["minimax-coding-plan-mcp", "-y"],
+      "env": {
+        "MINIMAX_API_KEY": "你的API Key",
+        "MINIMAX_API_HOST": "https://api.minimaxi.com"
       }
     }
   }
@@ -38,9 +54,9 @@ npm install -g mcporter
 **获取 API Key**:
 1. 访问 https://platform.minimaxi.cn
 2. 登录后进入「API 密钥」页面
-3. 创建新的 API Key
+3. 创建新的 API Key（选择 Coding Plan 订阅）
 
-### 3. 启动 MCP 服务
+### 3. 启动 MCP 服务（如未启动）
 ```bash
 mcporter daemon start
 ```
@@ -49,7 +65,7 @@ mcporter daemon start
 
 ### 1. web_search - 网络搜索
 - 参数: `query` (搜索关键词)
-- 返回: 搜索结果列表
+- 返回: 搜索结果列表（标题、链接、摘要、日期）
 
 ### 2. understand_image - 图片理解
 - 参数: 
@@ -58,36 +74,26 @@ mcporter daemon start
 
 ## 使用方式
 
-### 使用 mcporter 直接调用
+### 直接调用
 
 ```bash
 # 网络搜索
 mcporter call minimax.web_search query="最新新闻"
 
-# 图片理解
+# 图片理解（URL）
 mcporter call minimax.understand_image prompt="描述这张图片" image_source="https://example.com/image.jpg"
 
 # 图片理解（本地文件）
 mcporter call minimax.understand_image prompt="这张图片有什么" image_source="/path/to/image.jpg"
 ```
 
-### 使用 skill 封装脚本
-
-```bash
-# 搜索
-./scripts/mcp.sh search "搜索内容"
-
-# 图片理解
-./scripts/mcp.sh image "问题" "/path/to/image.jpg"
-```
-
-## 列出可用工具
+### 列出可用工具
 
 ```bash
 mcporter list minimax
 ```
 
-或
+### 查看工具 schema
 
 ```bash
 mcporter list minimax --schema
@@ -99,10 +105,10 @@ mcporter list minimax --schema
 A: 确保 MCP 服务已启动: `mcporter daemon start`
 
 ### Q: 提示 "API Key 无效"
-A: 检查 `~/.openclaw/workspace/config/mcporter.json` 中的 API Key 是否正确
+A: 检查 `~/.mcporter/config.json` 中的 API Key 是否正确
 
-### Q: 如何更新 MCP 配置?
-A: 修改配置文件后重启: `mcporter daemon restart`
+### Q: 配置后仍无法使用
+A: 重启 MCP 服务: `mcporter daemon restart`
 
 ## 文件结构
 
@@ -110,5 +116,5 @@ A: 修改配置文件后重启: `mcporter daemon restart`
 minimax-mcp/
 ├── SKILL.md          # 本文件
 └── scripts/
-    └── mcp.sh        # 封装脚本
+    └── mcp.sh        # 封装脚本（可选）
 ```
