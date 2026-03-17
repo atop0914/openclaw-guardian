@@ -17,8 +17,8 @@ jobs:
         with:
           fetch-depth: 0  # 扫描完整历史
       
-      - name: TruffleHog OSS
-        uses: trufflesecurity/trufflehog-action@main
+      - name: TruffleHog
+        uses: trufflesecurity/trufflehog@main
         with:
           # 扫描整个仓库
           path: ./
