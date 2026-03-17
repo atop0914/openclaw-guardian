@@ -10,8 +10,8 @@ import urllib.request
 import urllib.error
 import os
 
-# API Configuration
-API_KEY = "705ae7b63a1b291cb4b7818fce2ffdc038719fec"
+# API Configuration (store in ~/.serper.key or set SERPER_API_KEY env)
+API_KEY = os.environ.get("SERPER_API_KEY", "")
 BASE_URL = "https://google.serper.dev"
 
 def search(query, search_type="search", num=10, gl="us", hl="en"):

@@ -57,7 +57,15 @@ python skills/serper-search/search.py "machine learning" --num 20
 
 ## API Key
 
-Stored in: `~/.openclaw/config/serper.key`
+配置方式（二选一）：
+
+1. **环境变量**（推荐）：
+```bash
+export SERPER_API_KEY="你的API Key"
+```
+
+2. **配置文件**（旧方式）：
+Stored in: `~/.serper.key`
 
 ## Output Format
 
