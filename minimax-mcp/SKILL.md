@@ -8,33 +8,48 @@ allowed-tools: Bash(mcporter:*), Bash(eval:*)
 
 使用 MiniMax Coding Plan MCP 服务进行网络搜索和图片理解。
 
-## 前置要求
+## 快速安装
+
+一键自动安装（推荐）：
+
+```bash
+# 1. 安装 mcporter（如不存在）
+which mcporter || npm install -g mcporter
+
+# 2. 添加 PATH（确保 npm 全局模块可用）
+export PATH="$HOME/.local/bin:$HOME/.npm-global/bin:$PATH"
+
+# 3. 启动 MCP 服务
+mcporter daemon start 2>/dev/null || true
+
+# 4. 验证
+mcporter list
+```
+
+## 手动安装步骤
 
 ### 1. 安装 mcporter
 ```bash
 npm install -g mcporter
+
+# 确保 PATH 包含 npm 全局模块
+export PATH="$HOME/.local/bin:$HOME/.npm-global/bin:$PATH"
 ```
 
-### 2. 检查 MCP 配置
+### 2. 配置 MCP 服务器
 
-配置已存在于 `~/.mcporter/config.json`：
+**方式一：使用已有配置**
 
-```json
-{
-  "mcpServers": {
-    "minimax": {
-      "command": "uvx",
-      "args": ["minimax-coding-plan-mcp", "-y"],
-      "env": {
-        "MINIMAX_API_KEY": "你的API Key",
-        "MINIMAX_API_HOST": "https://api.minimaxi.com"
-      }
-    }
-  }
-}
+如果 OpenClaw 已配置 MCP，复制配置：
+```bash
+mkdir -p ~/.mcporter
+cp ~/.mcporter/config.json ~/.mcporter/config.json 2>/dev/null || \
+cp ~/.openclaw/workspace/config/mcporter.json ~/.mcporter/config.json 2>/dev/null || true
 ```
 
-**如需重新配置**，创建 `~/.mcporter/config.json`:
+**方式二：新建配置**
+
+创建 `~/.mcporter/config.json`:
 
 ```json
 {
@@ -56,7 +71,7 @@ npm install -g mcporter
 2. 登录后进入「API 密钥」页面
 3. 创建新的 API Key（选择 Coding Plan 订阅）
 
-### 3. 启动 MCP 服务（如未启动）
+### 3. 启动 MCP 服务
 ```bash
 mcporter daemon start
 ```
@@ -101,6 +116,14 @@ mcporter list minimax --schema
 
 ## 常见问题
 
+### Q: 提示 "command not found: mcporter"
+A: 
+```bash
+export PATH="$HOME/.local/bin:$HOME/.npm-global/bin:$PATH"
+# 或重新安装
+npm install -g mcporter
+```
+
 ### Q: 提示 "Unknown MCP server"
 A: 确保 MCP 服务已启动: `mcporter daemon start`
 
@@ -108,7 +131,10 @@ A: 确保 MCP 服务已启动: `mcporter daemon start`
 A: 检查 `~/.mcporter/config.json` 中的 API Key 是否正确
 
 ### Q: 配置后仍无法使用
-A: 重启 MCP 服务: `mcporter daemon restart`
+A: 重启 MCP 服务: 
+```bash
+mcporter daemon restart
+```
 
 ## 文件结构
 
